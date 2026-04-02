@@ -41,17 +41,17 @@ const navByRole: Record<string, NavItem[]> = {
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
+  const { profile, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (!user) return null;
+  if (!profile) return null;
 
-  const navItems = navByRole[user.role] || [];
-  const initials = user.name.split(' ').map(n => n[0]).join('');
+  const navItems = navByRole[profile.role] || [];
+  const initials = profile.full_name.split(' ').map(n => n[0]).join('');
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
   };
 
@@ -97,8 +97,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">{user.name}</p>
-              <p className="text-[10px] text-sidebar-foreground/50 capitalize">{user.role}</p>
+              <p className="text-xs font-medium text-sidebar-foreground truncate">{profile.full_name}</p>
+              <p className="text-[10px] text-sidebar-foreground/50 capitalize">{profile.role}</p>
             </div>
           </div>
           <Button
