@@ -1,28 +1,56 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
-import { UserRole } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GraduationCap, User, BookOpen, Shield } from 'lucide-react';
+import { toast } from 'sonner';
 
-const roles: { role: UserRole; label: string; icon: React.ReactNode; color: string }[] = [
+type Role = 'student' | 'teacher' | 'admin';
+
+const roles: { role: Role; label: string; icon: React.ReactNode; color: string }[] = [
   { role: 'student', label: 'Student', icon: <User size={20} />, color: 'bg-primary/10 text-primary border-primary/20' },
   { role: 'teacher', label: 'Teacher', icon: <BookOpen size={20} />, color: 'bg-accent/10 text-accent border-accent/20' },
   { role: 'admin', label: 'Admin', icon: <Shield size={20} />, color: 'bg-success/10 text-success border-success/20' },
 ];
 
 export default function Login() {
-  const [selectedRole, setSelectedRole] = useState<UserRole>('student');
-  const { login } = useAuth();
+  const [selectedRole, setSelectedRole] = useState<Role>('student');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [department, setDepartment] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(selectedRole);
-    navigate(`/${selectedRole}`);
+    setLoading(true);
+
+    if (isSignUp) {
+      const { error } = await signUp(email, password, {
+        full_name: fullName,
+        role: selectedRole,
+        department: department || undefined,
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Account created! Check your email to confirm.');
+      }
+    } else {
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        navigate(`/${selectedRole}`);
+      }
+    }
+    setLoading(false);
   };
 
   return (
@@ -50,8 +78,10 @@ export default function Login() {
             <div className="w-10 h-10 rounded-xl gradient-hero flex items-center justify-center mx-auto mb-3 lg:hidden">
               <GraduationCap size={20} className="text-primary-foreground" />
             </div>
-            <CardTitle className="font-display text-xl">Sign In</CardTitle>
-            <CardDescription>Select your role and enter your credentials</CardDescription>
+            <CardTitle className="font-display text-xl">{isSignUp ? 'Create Account' : 'Sign In'}</CardTitle>
+            <CardDescription>
+              {isSignUp ? 'Register with your college credentials' : 'Select your role and enter your credentials'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {/* Role Selector */}
@@ -72,23 +102,38 @@ export default function Login() {
               ))}
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input id="name" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Enter your full name" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dept">Department</Label>
+                    <Input id="dept" value={department} onChange={e => setDepartment(e.target.value)} placeholder="e.g. Computer Science" />
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder={`${selectedRole}@college.edu`} defaultValue={`${selectedRole}@college.edu`} />
+                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@college.edu" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" defaultValue="password" />
+                <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
               </div>
-              <Button type="submit" className="w-full" size="lg">
-                Sign In as {roles.find(r => r.role === selectedRole)?.label}
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? 'Please wait...' : isSignUp ? 'Create Account' : `Sign In as ${roles.find(r => r.role === selectedRole)?.label}`}
               </Button>
             </form>
 
-            <p className="text-xs text-muted-foreground text-center mt-4">
-              Demo mode — select a role and click sign in
-            </p>
+            <button
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="w-full text-center text-sm text-muted-foreground hover:text-foreground mt-4 transition-colors"
+            >
+              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+            </button>
           </CardContent>
         </Card>
       </div>
